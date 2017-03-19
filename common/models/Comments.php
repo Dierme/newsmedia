@@ -19,6 +19,10 @@ use yii\behaviors\TimestampBehavior;
  */
 class Comments extends \yii\db\ActiveRecord
 {
+    CONST STATUS_PUBLISHED = 1;
+    CONST STATUS_UNPUBLISHED = 2;
+    CONST STATUS_DELETED = 3;
+
     /**
      * @inheritdoc
      */

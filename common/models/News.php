@@ -4,6 +4,7 @@ namespace common\models;
 
 use Yii;
 use yii\behaviors\TimestampBehavior;
+use yii\web\UploadedFile;
 
 /**
  * This is the model class for table "news".
@@ -15,11 +16,15 @@ use yii\behaviors\TimestampBehavior;
  * @property int $status
  * @property int $created_at
  * @property int $updated_at
+ * @property UploadedFile $imageFile
  *
  * @property Comments[] $comments
  */
 class News extends \yii\db\ActiveRecord
 {
+    CONST STATUS_PUBLISHED = 1;
+    CONST STATUS_UNPUBLISHED = 2;
+
     public $imageFile;
 
     /**
@@ -37,8 +42,8 @@ class News extends \yii\db\ActiveRecord
     public function getStatuses()
     {
         return [
-            1 => 'Published',
-            2 => 'Unpublished',
+            self::STATUS_PUBLISHED => 'Published',
+            self::STATUS_UNPUBLISHED => 'Unpublished',
         ];
     }
 
@@ -94,17 +99,49 @@ class News extends \yii\db\ActiveRecord
 
     /**
      * Saves image to server directory
+     * @param $imageName
      * @return bool
      */
     public function upload($imageName)
     {
-        $path = Yii::getAlias('@common') . '/images/';
+        $path = Yii::getAlias('@frontend') . '/web/images/';
 
         if ($this->validate()) {
-            $this->imageFile->saveAs($path . $imageName . '.' . $this->imageFile->extension);
+            $this->imageFile->saveAs($path . $imageName);
             return true;
         } else {
             return false;
         }
+    }
+
+    /**
+     * Calculates and formats time since news were added
+     * @return string
+     */
+    public function calcTimeAgo()
+    {
+        $timeCreated = strtotime($this->created_at);
+
+        $timeNow = strtotime(date('Y-m-d h:i:s'));
+
+        $diff = $timeNow - $timeCreated;
+
+        if (intval($diff / 60) < 1) {
+            //less, than hour ago
+            $toDisplay = 'less than a minute ago';
+        } elseif (intval($diff / 3600) < 1) {
+            //less, than hour ago
+            $toDisplay = intval($diff / 60) . ' min ago';
+        } elseif (intval($diff / 86400) < 1) {
+            //less, than day ago
+            $toDisplay = intval($diff / 3600) . 'h ago';
+        } elseif (intval($diff / 2592000) < 1) {
+            //less, than day ago
+            $toDisplay = intval($diff / 86400) . '  days ago';
+        } else {
+            $toDisplay = 'more, than a month ago';
+        }
+
+        return $toDisplay;
     }
 }

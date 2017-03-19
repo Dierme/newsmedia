@@ -1,23 +1,24 @@
 <?php
 namespace frontend\controllers;
 
+use common\models\Comments;
+use common\models\News;
 use Yii;
 use yii\base\InvalidParamException;
-use yii\web\BadRequestHttpException;
+use yii\data\ActiveDataProvider;
+use yii\web\NotFoundHttpException;
 use yii\web\Controller;
-use yii\filters\VerbFilter;
 use yii\filters\AccessControl;
-use common\models\LoginForm;
-use frontend\models\PasswordResetRequestForm;
-use frontend\models\ResetPasswordForm;
-use frontend\models\SignupForm;
-use frontend\models\ContactForm;
+use yii\filters\VerbFilter;
+use yii\web\Response;
 
 /**
  * Site controller
  */
 class SiteController extends Controller
 {
+    public $enableCsrfValidation = false;
+
     /**
      * @inheritdoc
      */
@@ -26,24 +27,18 @@ class SiteController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::className(),
-                'only' => ['logout', 'signup'],
+                'only' => ['*'],
                 'rules' => [
                     [
-                        'actions' => ['signup'],
                         'allow' => true,
                         'roles' => ['?'],
-                    ],
-                    [
-                        'actions' => ['logout'],
-                        'allow' => true,
-                        'roles' => ['@'],
-                    ],
+                    ]
                 ],
             ],
             'verbs' => [
                 'class' => VerbFilter::className(),
                 'actions' => [
-                    'logout' => ['post'],
+                    'post-comment' => ['POST'],
                 ],
             ],
         ];
@@ -72,142 +67,95 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        return $this->render('index');
+        $dataProvider = new ActiveDataProvider([
+            'query' => News::find()
+                ->where(['status' => News::STATUS_PUBLISHED]),
+            'pagination' => [
+                'pageSize' => 5,
+            ],
+            'sort' => [
+                'defaultOrder' => [
+                    'created_at' => SORT_DESC,
+                    'title' => SORT_ASC,
+                ]
+            ],
+        ]);
+
+        return $this->render('index', [
+            'dataProvider' => $dataProvider
+        ]);
     }
 
     /**
-     * Logs in a user.
-     *
-     * @return mixed
+     * Displays news view page
+     * @param $id
+     * @return string
+     * @throws NotFoundHttpException
      */
-    public function actionLogin()
+    public function actionNews($id)
     {
-        if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
+        $model = News::findOne($id);
+
+        $suggestedProvider = new ActiveDataProvider([
+            'query' => News::find()
+                ->where(['status' => News::STATUS_PUBLISHED])
+                ->limit(3),
+            'sort' => [
+                'defaultOrder' => [
+                    'created_at' => SORT_DESC,
+                    'title' => SORT_ASC,
+                ]
+            ],
+        ]);
+
+        $commentsProvider = new ActiveDataProvider([
+            'query' => Comments::find()
+                ->where([
+                    'status' => Comments::STATUS_PUBLISHED,
+                    'news_id' => $model->id,
+                ]),
+            'sort' => [
+                'defaultOrder' => [
+                    'created_at' => SORT_ASC
+                ]
+            ],
+        ]);
+
+        if (empty($model)) {
+            throw new NotFoundHttpException('The requested page does not exist.');
         }
 
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
-        } else {
-            return $this->render('login', [
-                'model' => $model,
+        return $this->render('news_view', [
+            'model' => $model,
+            'suggestedProvider' => $suggestedProvider,
+            'commentsProvider' => $commentsProvider,
+        ]);
+    }
+
+
+    public function actionPostComment()
+    {
+        \Yii::$app->response->format = Response::FORMAT_JSON;
+        $post = Yii::$app->request->post();
+
+        if (!empty($post['text'])) {
+            $post['text'] = strip_tags($post['text']);
+        }
+
+        $model = new Comments();
+        $model->status = Comments::STATUS_PUBLISHED;
+
+        if ($model->load($post, '') && $model->save()) {
+            return $this->renderPartial('_comment_item', [
+                'model' => $model
             ]);
-        }
-    }
-
-    /**
-     * Logs out the current user.
-     *
-     * @return mixed
-     */
-    public function actionLogout()
-    {
-        Yii::$app->user->logout();
-
-        return $this->goHome();
-    }
-
-    /**
-     * Displays contact page.
-     *
-     * @return mixed
-     */
-    public function actionContact()
-    {
-        $model = new ContactForm();
-        if ($model->load(Yii::$app->request->post()) && $model->validate()) {
-            if ($model->sendEmail(Yii::$app->params['adminEmail'])) {
-                Yii::$app->session->setFlash('success', 'Thank you for contacting us. We will respond to you as soon as possible.');
-            } else {
-                Yii::$app->session->setFlash('error', 'There was an error sending your message.');
-            }
-
-            return $this->refresh();
         } else {
-            return $this->render('contact', [
-                'model' => $model,
-            ]);
-        }
-    }
-
-    /**
-     * Displays about page.
-     *
-     * @return mixed
-     */
-    public function actionAbout()
-    {
-        return $this->render('about');
-    }
-
-    /**
-     * Signs user up.
-     *
-     * @return mixed
-     */
-    public function actionSignup()
-    {
-        $model = new SignupForm();
-        if ($model->load(Yii::$app->request->post())) {
-            if ($user = $model->signup()) {
-                if (Yii::$app->getUser()->login($user)) {
-                    return $this->goHome();
-                }
-            }
+            return [
+                'success' => false,
+                'message' => 'Failed to load model'
+            ];
         }
 
-        return $this->render('signup', [
-            'model' => $model,
-        ]);
     }
 
-    /**
-     * Requests password reset.
-     *
-     * @return mixed
-     */
-    public function actionRequestPasswordReset()
-    {
-        $model = new PasswordResetRequestForm();
-        if ($model->load(Yii::$app->request->post()) && $model->validate()) {
-            if ($model->sendEmail()) {
-                Yii::$app->session->setFlash('success', 'Check your email for further instructions.');
-
-                return $this->goHome();
-            } else {
-                Yii::$app->session->setFlash('error', 'Sorry, we are unable to reset password for the provided email address.');
-            }
-        }
-
-        return $this->render('requestPasswordResetToken', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Resets password.
-     *
-     * @param string $token
-     * @return mixed
-     * @throws BadRequestHttpException
-     */
-    public function actionResetPassword($token)
-    {
-        try {
-            $model = new ResetPasswordForm($token);
-        } catch (InvalidParamException $e) {
-            throw new BadRequestHttpException($e->getMessage());
-        }
-
-        if ($model->load(Yii::$app->request->post()) && $model->validate() && $model->resetPassword()) {
-            Yii::$app->session->setFlash('success', 'New password saved.');
-
-            return $this->goHome();
-        }
-
-        return $this->render('resetPassword', [
-            'model' => $model,
-        ]);
-    }
 }

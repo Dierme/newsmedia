@@ -13,6 +13,7 @@ use common\models\Comments;
 class CommentsSearch extends Comments
 {
     public $news_title;
+
     /**
      * @inheritdoc
      */

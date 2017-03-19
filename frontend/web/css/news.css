@@ -1,0 +1,99 @@
+/*helpers*/
+.pad-bot {
+    padding-bottom: 10px;
+}
+
+.pad-top {
+    padding-top: 10px;
+}
+
+.mar-bot {
+    margin-bottom: 10px;
+}
+
+.mar-top {
+    margin-top: 10px;
+}
+
+/*styles*/
+
+/*news line*/
+.newsline-block {
+    padding: 1em 0 1em 0;
+    margin-bottom: 1em;
+    background-color: white;
+}
+
+.newsline-block .image {
+    width: 250px;
+}
+
+.newsline-block .image img {
+    height: auto;
+    width: 100%;
+}
+
+/*suggested news*/
+.suggested-news {
+    margin: 0 0 1em 1em;
+    padding-top: 1em;
+    background-color: white;
+}
+
+.suggested-news .image {
+    width: 200px;
+    margin: auto;
+}
+
+.suggested-news .image img {
+    width: 100%;
+}
+
+/*news-view*/
+.news-view {
+    background-color: white;
+}
+
+.news-view .image {
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+
+.news-view .image img {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+.news-view .news-text {
+    font-size: 18px;
+    line-height: 30px;
+}
+
+/*comment*/
+.comment-area {
+    background-color: white;
+    padding: 15px 0 15px 0;
+}
+
+.avatar {
+    height: 80px;
+    width: 80px;
+}
+
+.avatar img {
+    width: 100%;
+}
+
+.wrap {
+    background-color: #e5e5e5;
+}
+
+.date-added {
+    font-style: italic;
+}
+
+.time-past-added {
+    font-style: italic;
+}

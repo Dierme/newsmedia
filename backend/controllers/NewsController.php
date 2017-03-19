@@ -11,6 +11,7 @@ use yii\filters\VerbFilter;
 use yii\web\UploadedFile;
 use yii\base\Security;
 use yii\db\IntegrityException;
+
 /**
  * NewsController implements the CRUD actions for News model.
  */
@@ -70,12 +71,19 @@ class NewsController extends Controller
         if ($model->load(Yii::$app->request->post())) {
 
             $model->imageFile = UploadedFile::getInstance($model, 'imageFile');
-            $security = new Security();
-            $model->image = $security->generateRandomString(32) . '.' . $model->imageFile->extension;
-            $model->save();
-            if ($model->upload($model->image)) {
-                return $this->redirect(['view', 'id' => $model->id]);
+
+            if (!is_null($model->imageFile)) {
+                $security = new Security();
+                $model->image = $security->generateRandomString(32) . '.' . $model->imageFile->extension;
             }
+
+            $model->save();
+
+            if (!is_null($model->imageFile)) {
+                $model->upload($model->image);
+            }
+
+            return $this->redirect(['view', 'id' => $model->id]);
         }
 
         return $this->render('create', [
@@ -93,13 +101,28 @@ class NewsController extends Controller
     {
         $model = $this->findModel($id);
 
-        if ($model->load(Yii::$app->request->post()) && $model->save()) {
+        if ($model->load(Yii::$app->request->post())) {
+
+            $model->imageFile = UploadedFile::getInstance($model, 'imageFile');
+
+            if (!is_null($model->imageFile)) {
+                $security = new Security();
+                $model->image = $security->generateRandomString(32) . '.' . $model->imageFile->extension;
+            }
+
+            $model->save();
+
+            if (!is_null($model->imageFile)) {
+                $model->upload($model->image);
+            }
+
             return $this->redirect(['view', 'id' => $model->id]);
-        } else {
-            return $this->render('update', [
-                'model' => $model,
-            ]);
         }
+
+        return $this->render('update', [
+            'model' => $model,
+        ]);
+
     }
 
     /**
@@ -110,10 +133,9 @@ class NewsController extends Controller
      */
     public function actionDelete($id)
     {
-        try{
+        try {
             $this->findModel($id)->delete();
-        }
-        catch (IntegrityException $e){
+        } catch (IntegrityException $e) {
             //TODO create beautiful exception handling
             print $e->getMessage();
             die;

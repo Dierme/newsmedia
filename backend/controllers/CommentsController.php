@@ -26,6 +26,7 @@ class CommentsController extends Controller
                 'class' => VerbFilter::className(),
                 'actions' => [
                     'delete' => ['POST'],
+                    'post' => ['POST'],
                 ],
             ],
         ];

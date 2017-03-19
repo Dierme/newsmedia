@@ -36,7 +36,13 @@ $this->params['breadcrumbs'][] = $this->title;
                 }
             ],
             'text:ntext',
-            'status',
+                [
+                        'attribute' => 'status',
+                        'value' => function($model){
+                            $statuses = $model->getStatuses();
+                            return $statuses[$model->status];
+                        }
+                ],
             'created_at',
             // 'updated_at',
 
